@@ -3,10 +3,10 @@ import moment from 'moment'; // Pour travailler avec les semaines
 import { SerialPort } from 'serialport';
 import { ReadlineParser } from '@serialport/parser-readline';
 
-const path = '/dev/ttyUSB0'; // Le chemin du port série
+const path = '/dev/ttyACM0'; // Le chemin du port série
 
 const port = new SerialPort({
-  path: '/dev/ttyUSB0',
+  path: '/dev/ttyACM1',
   baudRate: 9600,
   autoOpen: false
 });

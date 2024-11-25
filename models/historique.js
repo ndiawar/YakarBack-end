@@ -22,4 +22,4 @@ const HistoriqueSchema = new mongoose.Schema({
 
 const Historique = mongoose.model('Historique', HistoriqueSchema);
 
-export default Historique;
+export default Historique; // Assurez-vous d'exporter par défaut ici

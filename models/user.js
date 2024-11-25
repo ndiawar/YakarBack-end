@@ -39,7 +39,7 @@ const UserSchema = new mongoose.Schema({
       select: false,
     },
     secretCode: {
-      type: String, // Rendre conforme à une chaîne de 4 chiffres
+      type: Number, // Rendre conforme à une chaîne de 4 chiffres
       required: true,
       unique: true,
     },
@@ -60,8 +60,8 @@ const UserSchema = new mongoose.Schema({
 });
 
 // Méthode pour comparer le code secret
-UserSchema.methods.matchSecretCode = function (enteredCode) {
-  return enteredCode === this.authentication.secretCode;
+UserSchema.methods.validatePassword = async function(password) {
+  return bcrypt.compare(password, this.password); // Comparer les mots de passe
 };
 
 const User = mongoose.model('User', UserSchema);

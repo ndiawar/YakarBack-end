@@ -9,6 +9,7 @@ import {
 import { registerUser } from '../controllers/authController.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import { roleMiddleware } from '../middleware/roleMiddleware.js';
+import { name } from 'ejs';
 
 const router = express.Router();
 
@@ -525,37 +526,40 @@ router.delete('/users/:id', deleteUser);
 router.patch('/users/:id/role', toggleUserRole);
 
 
-router.post('/login-secret', async (req, res) => {
-    const { codeSecret } = req.body;
+// router.post('/login-secret', async (req, res) => {
+//     const { codeSecret } = req.body;
 
-    try {
-        const user = await User.findOne({ secretCode: codeSecret });
+//     if (!codeSecret || isNaN(codeSecret) || codeSecret.toString().length !== 4) {
+//         return res.status(400).json({ message: 'Code secret invalide. Il doit être un nombre de 4 chiffres.' });
+//     }
 
-        if (!user) {
-            return res.status(400).json({ message: 'Code secret incorrect.' });
-        }
+//     try {
+//         const user = await User.findOne({ secretCode:  codeSecret });
 
-        if (user.archivé) {
-            return res.status(403).json({ message: 'Votre compte est archivé. Vous ne pouvez pas vous connecter.' });
-        }
+//         if (!user) {
+//             return res.status(400).json({ message: 'Code secret incorrect.' });
+//         }
 
-        const token = jwt.sign({ userId: user._id, role: user.role }, SECRET_KEY, { expiresIn: '1h' });
+//         if (user.archivé) {
+//             return res.status(403).json({ message: 'Votre compte est archivé. Vous ne pouvez pas vous connecter.' });
+//         }
 
-        res.status(200).json({
-            message: 'Connexion réussie.',
-            user: {
-                prenom: user.prenom,
-                nom: user.nom,
-                email: user.email,
-                role: user.role,
-                photo: user.photo,
-                telephone: user.telephone,
-            },
-            token: token,
-        });
-    } catch (error) {
-        console.error('Erreur serveur:', error);
-        res.status(500).json({ message: 'Erreur serveur.' });
-    }
-});
+//         const token = jwt.sign({ userId: user._id, role: user.role }, SECRET_KEY, { expiresIn: '1h' });
+
+//         res.status(200).json({
+//             message: 'Connexion réussie.',
+//             user: {
+//                 name: user.name,
+//                 email: user.email,
+//                 role: user.role,
+//                 photo: user.photo,
+//                 telephone: user.telephone,
+//             },
+//             token: token,
+//         });
+//     } catch (error) {
+//         console.error('Erreur serveur:', error);
+//         res.status(500).json({ message: 'Erreur serveur.' });
+//     }
+// });
 export default router;

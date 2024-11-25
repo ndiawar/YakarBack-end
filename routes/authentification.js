@@ -1,7 +1,8 @@
 import express from 'express';
-import { registerUser, loginUser, logoutUser, checkEmailExistence } from '../controllers/authController.js';
+import { logoutUser, checkEmailExistence, loginWithEmail, loginWithSecretCode } from '../controllers/authController.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import { roleMiddleware } from '../middleware/roleMiddleware.js';
+import User from '../models/user.js';
 
 const router = express.Router();
 
@@ -94,7 +95,46 @@ const router = express.Router();
  *       500:
  *         description: Une erreur serveur s'est produite.
  */
-router.post('/login', loginUser);
+router.post('/login-email', loginWithEmail);
+
+router.post('/login-secret', loginWithSecretCode);
+
+// router.post('/login-secret', async (req, res) => {
+//     const { secretCode } = req.body;
+
+//     if (!secretCode || isNaN(secretCode) || secretCode.toString().length !== 4) {
+//         return res.status(400).json({ message: 'Code secret invalide. Il doit être un nombre de 4 chiffres.' });
+//     }
+
+//     try {
+//         const user = await User.findOne({ codeSecret: secretCode });
+
+//         if (!user) {
+//             return res.status(400).json({ message: 'Code secret incorrect.' });
+//         }
+
+//         if (user.archivé) {
+//             return res.status(403).json({ message: 'Votre compte est archivé. Vous ne pouvez pas vous connecter.' });
+//         }
+
+//         const token = jwt.sign({ userId: user._id, role: user.role }, SECRET_KEY, { expiresIn: '1h' });
+
+//         res.status(200).json({
+//             message: 'Connexion réussie.',
+//             user: {
+//                 name: user.name,
+//                 email: user.email,
+//                 role: user.role,
+//                 photo: user.photo,
+//                 telephone: user.telephone,
+//             },
+//             token: token,
+//         });
+//     } catch (error) {
+//         console.error('Erreur serveur:', error);
+//         res.status(500).json({ message: 'Erreur serveur.' });
+//     }
+// });
 
 // Route pour vérifier l'existence de l'email
 router.post('/check-email', checkEmailExistence);
