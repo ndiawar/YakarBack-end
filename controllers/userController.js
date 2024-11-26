@@ -193,5 +193,29 @@ export const toggleUserRole = async (req, res) => {
   }
 };
 
+export const searchUsers = async (req, res) => {
+  const { search, active } = req.query;
 
+  try {
+    const query = {};
+    
+    // Si un paramètre "search" est fourni (par exemple un email ou un nom)
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+      ];
+    }
 
+    // Filtre par statut si "active" est spécifié
+    if (active !== undefined) {
+      query.status = active === 'true';
+    }
+
+    const users = await User.find(query);
+    return res.status(200).json({ users });
+  } catch (error) {
+    console.error('Erreur lors de la recherche des utilisateurs:', error);
+    return res.status(500).json({ message: 'Erreur lors de la recherche des utilisateurs.' });
+  }
+};

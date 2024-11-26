@@ -4,11 +4,13 @@ import {
   getUserById, 
   updateUser, 
   deleteUser, 
-  toggleUserRole 
+  toggleUserRole,
+  searchUsers
 } from '../controllers/userController.js';
 import { registerUser } from '../controllers/authController.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import { roleMiddleware } from '../middleware/roleMiddleware.js';
+
 
 const router = express.Router();
 
@@ -558,4 +560,56 @@ router.post('/login-secret', async (req, res) => {
         res.status(500).json({ message: 'Erreur serveur.' });
     }
 });
+// Route de recherche des utilisateurs
+router.get('/search', searchUsers);
+// // Fonction de recherche des utilisateurs par nom ou email
+// export const searchUsers = async (req, res) => {
+//   const { search, active } = req.query;
+
+//   try {
+//     const query = {};
+
+//     // Recherche par nom ou email
+//     if (search) {
+//       query.$or = [
+//         { name: { $regex: search, $options: 'i' } },
+//         { email: { $regex: search, $options: 'i' } }
+//       ];
+//     }
+
+//     // Filtrage par statut actif
+//     if (active !== undefined) {
+//       query.status = active === 'true';  // Vérifie si l'utilisateur est actif
+//     }
+
+//     const users = await User.find(query);
+//     return res.status(200).json({ users });
+//   } catch (error) {
+//     console.error('Erreur lors de la recherche des utilisateurs:', error);
+//     return res.status(500).json({ message: 'Erreur lors de la recherche des utilisateurs.' });
+//   }
+// };
+router.get('/search', async (req, res) => {
+    const { search, field } = req.query; // Récupérer le terme de recherche et le champ
+    try {
+      if (!search) {
+        return res.status(400).json({ message: 'Le terme de recherche est obligatoire.' });
+      }
+  
+      // Recherche basée sur le champ (email)
+      const query = {};
+      if (field === 'email') {
+        query.email = { $regex: search, $options: 'i' }; // Recherche insensible à la casse
+      }
+  
+      const users = await User.find(query);
+      res.json({ users });
+    } catch (error) {
+      console.error('Erreur lors de la recherche des utilisateurs:', error);
+      res.status(500).json({ message: 'Erreur lors de la recherche des utilisateurs' });
+    }
+  });
+  
+
+
 export default router;

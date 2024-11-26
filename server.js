@@ -2,17 +2,16 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import cookieParser from 'cookie-parser';
+//import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import http from 'http'; // Pour créer un serveur HTTP
-import { Server as SocketIO } from 'socket.io'; // WebSocket avec Socket.IO
 import connectDB from './config/db.js'; // Connexion MongoDB
 import swaggerDocs from './swagger.js'; // Documentation API
 import authentificationRoutes from './routes/authentification.js';
 import userRoutes from './routes/user.js';
 import collecteRoutes from './routes/collecte.js';
 import historiqueRoutes from './routes/historique.js';
-import { captureData } from './controllers/dataController.js'; // Capture des données Arduino
+// import { captureData } from './controllers/dataController.js'; // Capture des données Arduino (commenté, car plus utilisé)
 
 // Charger les variables d'environnement
 dotenv.config();
@@ -20,17 +19,8 @@ dotenv.config();
 // Initialiser l'application Express
 const app = express();
 
-// Créer un serveur HTTP pour intégrer WebSocket
+// Créer un serveur HTTP sans WebSocket
 const server = http.createServer(app);
-
-// Configurer Socket.IO pour WebSocket
-const io = new SocketIO(server, {
-  cors: {
-    origin: process.env.CORS_ORIGINS.split(','), // Autoriser les origines définies dans .env
-    methods: ['GET', 'POST'],
-    credentials: true, // Autoriser les cookies avec les requêtes
-  },
-});
 
 // Connexion à la base de données
 connectDB();
@@ -51,6 +41,9 @@ app.use('/api/users', userRoutes);
 app.use('/api/collecte', collecteRoutes);
 app.use('/api/historique', historiqueRoutes);  // Ajouter les routes d'historique
 
+// Utiliser les routes des utilisateurs
+app.use('/api/users', userRoutes);
+
 // Middleware pour gestion des erreurs
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -60,12 +53,10 @@ app.use((err, req, res, next) => {
 // Serveur de documentation Swagger
 swaggerDocs(app); // Fonction qui charge Swagger UI à /api-docs
 
-// WebSocket : Capture et diffusion des données Arduino
-captureData(io);
-
-// Lancer le serveur
+// Lancer le serveur sans WebSocket
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`Serveur démarré sur http://localhost:${PORT}`);
-  console.log('WebSocket disponible sur le même port.');
+  // WebSocket supprimé, donc cette ligne est commentée :
+  // console.log('WebSocket disponible sur le même port.');
 });

@@ -30,8 +30,8 @@ export const registerUser = async (req, res) => {
   }
 
   // Vérification de la longueur du mot de passe
-  if (password.length < 6) {
-    return res.status(400).json({ message: 'Le mot de passe doit contenir au moins 6 caractères.' });
+  if (password.length < 8) {
+    return res.status(400).json({ message: 'Le mot de passe doit contenir au moins 8 caractères.' });
   }
 
   try {
@@ -71,19 +71,11 @@ export const registerUser = async (req, res) => {
     // Enregistrement dans la base de données
     await newUser.save();
 
-    // Récupérer l'utilisateur connecté (celui qui effectue l'inscription)
-    const token = req.cookies.AUTH_COOKIE || req.headers.authorization?.split(' ')[1];
-    if (!token) {
-      return res.status(403).json({ message: 'Token non trouvé, utilisateur non authentifié.' });
-    }
-
+    
     // Décoder le token pour obtenir l'ID de l'utilisateur connecté
-    const decoded = jwt.verify(token, process.env.APP_SECRET);
-    const loggedInUserId = decoded.id;
-
+    
     // Enregistrer l'action d'inscription dans l'historique
-    await logAction(loggedInUserId, `Inscription d'un nouvel utilisateur (ID: ${newUser._id})`);
-
+   
     // Réponse au client
     res.status(201).json({
       message: 'Utilisateur créé avec succès.',
@@ -185,9 +177,7 @@ export const loginUser = async (req, res) => {
       { expiresIn: '1h' }
     );
 
-    // Envoi du token dans un cookie sécurisé
-    res.cookie('AUTH_COOKIE', token, { httpOnly: true });
-
+  
     // Enregistrer l'action de connexion dans l'historique
     await logAction(user._id, "Connexion réussie");
 
