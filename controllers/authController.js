@@ -30,8 +30,8 @@ export const registerUser = async (req, res) => {
   }
 
   // Vérification de la longueur du mot de passe
-  if (password.length < 6) {
-    return res.status(400).json({ message: 'Le mot de passe doit contenir au moins 6 caractères.' });
+  if (password.length < 8) {
+    return res.status(400).json({ message: 'Le mot de passe doit contenir au moins 8 caractères.' });
   }
 
   try {
@@ -102,18 +102,19 @@ export const registerUser = async (req, res) => {
     });
   } catch (error) {
     console.error('Erreur lors de la création de l\'utilisateur :', error);
+    // Erreur générique mais spécifique
+    return res.status(500).json({ message: 'Une erreur est survenue. Veuillez réessayer plus tard.' });
 
-    // Gestion des erreurs spécifiques
-    if (error.name === 'MongoError') {
-      return res.status(500).json({ message: 'Problème d\'accès à la base de données. Veuillez réessayer.' });
-    } else if (error.message.includes('Validation')) {
-      return res.status(400).json({ message: 'Données invalides. Veuillez vérifier les champs.' });
-    } else if (error.name === 'JsonWebTokenError') {
-      return res.status(403).json({ message: 'Le token est invalide ou expiré.' });
-    } else {
-      // Erreur générique mais spécifique
-      return res.status(500).json({ message: 'Une erreur est survenue. Veuillez réessayer plus tard.' });
-    }
+    // // Gestion des erreurs spécifiques
+    // if (error.name === 'MongoError') {
+    //   return res.status(500).json({ message: 'Problème d\'accès à la base de données. Veuillez réessayer.' });
+    // } else if (error.message.includes('Validation')) {
+    //   return res.status(400).json({ message: 'Données invalides. Veuillez vérifier les champs.' });
+    // } else if (error.name === 'JsonWebTokenError') {
+    //   return res.status(403).json({ message: 'Le token est invalide ou expiré.' });
+    // } else {
+      
+    // }
   }
 };
 
@@ -140,59 +141,33 @@ export const verifyPassword = async (req, res) => {
       res.json({ token });
 };
 
-// Connexion d'un utilisateur
-export const loginUser = async (req, res) => {
+// Connexion avec email et mot de passe
+export const loginWithEmail = async (req, res) => {
   try {
-    const { email, password, secretCode } = req.body;
+    const { email, password } = req.body;
 
-    // Vérification si le corps de la requête est vide ou mal formé
-    if (!req.body || (!email && !password && !secretCode)) {
-      return res.status(400).json({
-        message: 'Veuillez fournir une combinaison valide d\'email/mot de passe ou un code secret.'
-      });
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email et mot de passe requis.' });
     }
 
-    let user;
-    if (email && password) {
-      // Rechercher l'utilisateur par email
-      user = await User.findOne({ email }).select('+authentication.password');
-      if (!user) {
-        return res.status(404).json({ message: 'Utilisateur non trouvé avec cet email.' });
-      }
-
-      // Comparer le mot de passe
-      const passwordMatch = await bcrypt.compare(password.trim(), user.authentication.password);
-      if (!passwordMatch) {
-        return res.status(401).json({ message: 'Mot de passe incorrect.' });
-      }
-
-    } else if (secretCode) {
-      // Rechercher l'utilisateur par code secret
-      user = await User.findOne({ 'authentication.secretCode': secretCode });
-      if (!user) {
-        return res.status(404).json({ message: 'Utilisateur non trouvé avec ce code secret.' });
-      }
-    } else {
-      return res.status(400).json({
-        message: 'Email et mot de passe ou code secret requis pour la connexion.'
-      });
+    const user = await User.findOne({ email }).select('+authentication.password');
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé avec cet email.' });
     }
 
-    // Générer le token JWT
-    const token = jwt.sign(
-      { id: user._id, roles: user.roles },
-      process.env.APP_SECRET,
-      { expiresIn: '1h' }
-    );
+    const passwordMatch = await bcrypt.compare(password.trim(), user.authentication.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ message: 'Mot de passe incorrect.' });
+    }
 
-    // Envoi du token dans un cookie sécurisé
+    const token = jwt.sign({ id: user._id, roles: user.roles }, process.env.APP_SECRET, { expiresIn: '1h' });
+
     res.cookie('AUTH_COOKIE', token, { httpOnly: true });
-
-    // Enregistrer l'action de connexion dans l'historique
-    await logAction(user._id, "Connexion réussie");
+    await logAction(user._id, 'Connexion réussie (email)');
 
     return res.status(200).json({
       message: 'Connexion réussie.',
+      token,
       user: {
         id: user._id,
         name: user.name,
@@ -200,17 +175,59 @@ export const loginUser = async (req, res) => {
         telephone: user.telephone,
         adresse: user.adresse,
         photo: user.photo || null,
-        role: user.roles,
+        role: user.roles[0],
         status: user.status,
         createdAt: user.createdAt,
         date_modification: user.date_modification
-      }
+      },
     });
   } catch (error) {
-    console.error('Erreur lors de la tentative de connexion :', error);
-    return res.status(500).json({ message: 'Erreur serveur', error: error.message });
+    console.error('Erreur connexion email:', error);
+    res.status(500).json({ message: 'Erreur serveur', error: error.message });
   }
 };
+
+// Connexion avec code secret
+export const loginWithSecretCode = async (req, res) => {
+  try {
+    const { secretCode } = req.body;
+
+    if (!secretCode) {
+      return res.status(400).json({ message: 'Code secret requis.' });
+    }
+
+    const user = await User.findOne({ 'authentication.secretCode': secretCode });
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé avec ce code secret.' });
+    }
+
+    const token = jwt.sign({ id: user._id, roles: user.roles }, process.env.APP_SECRET, { expiresIn: '1h' });
+
+    res.cookie('AUTH_COOKIE', token, { httpOnly: true });
+    await logAction(user._id, 'Connexion réussie (code secret)');
+
+    return res.status(200).json({
+      message: 'Connexion réussie.',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        telephone: user.telephone,
+        adresse: user.adresse,
+        photo: user.photo || null,
+        role: user.roles[0],
+        status: user.status,
+        createdAt: user.createdAt,
+        date_modification: user.date_modification
+      },
+    });
+  } catch (error) {
+    console.error('Erreur connexion code secret:', error);
+    res.status(500).json({ message: 'Erreur serveur', error: error.message });
+  }
+};
+
 
 // Déconnexion d'un utilisateur
 export const logoutUser = (req, res) => {

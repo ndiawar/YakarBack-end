@@ -1,7 +1,9 @@
-import Donnees from '../models/data.js';
-import moment from 'moment'; // Pour travailler avec les semaines
+import mongoose from 'mongoose';
+import Donnees from '../models/data.js'; // Assurez-vous que le modèle Donnees est correctement importé
 import { SerialPort } from 'serialport';
 import { ReadlineParser } from '@serialport/parser-readline';
+import moment from 'moment';
+
 
 const path = '/dev/ttyUSB0'; // Le chemin du port série
 
@@ -23,23 +25,39 @@ port.open((err) => {
 // Initialiser le parser pour lire les données ligne par ligne
 const parser = port.pipe(new ReadlineParser({ delimiter: '\n' }));
 
-// Gérer l'événement de réception de données
-parser.on('data', (data) => {
-  console.log('Données reçues:', data);
-});
-
+// Liste des heures importantes (par exemple : 1:05, 1:10, 1:15)
+const heuresImportantes = [
+  { heure: 20, minute: 40 },
+  { heure: 20, minute: 42 },
+  { heure: 20, minute: 46 },
+];
 
 // Fonction pour récupérer les données en temps réel et les émettre via WebSocket
 export const captureData = (io) => {
-  let dernierEnregistrement = null; // Stocker la dernière heure enregistrée
+  let dernierEnregistrement = {}; // Un objet pour stocker les heures importantes enregistrées
 
   parser.on('data', async (data) => {
     try {
+      // Vérification si les données sont valides
+      if (!data || data.trim() === '') {
+        console.error('Aucune donnée valide reçue');
+        return;
+      }
+
       console.log('Données brutes reçues du port série:', data);
 
-      const parsedData = JSON.parse(data);
+      // Conversion des données en JSON
+      let parsedData;
+      try {
+        parsedData = JSON.parse(data);
+      } catch (parseError) {
+        console.error('Erreur lors du parsing des données:', data);
+        return;
+      }
+
       console.log('Données converties en JSON:', parsedData);
 
+      // Vérification des champs essentiels
       if (typeof parsedData.temperature !== 'number' || typeof parsedData.humidite !== 'number') {
         console.error('Données invalides reçues:', parsedData);
         return;
@@ -51,54 +69,201 @@ export const captureData = (io) => {
       const date = now.toISOString().split('T')[0];
       const heure = `${String(heureActuelle).padStart(2, '0')}:${String(minutesActuelles).padStart(2, '0')}`;
 
-      // Liste des heures importantes
-      const heuresImportantes = [10, 14, 17];
+      // Vérification si c'est une heure importante
+      const estHeureImportante = heuresImportantes.some(
+        ({ heure, minute }) => heure === heureActuelle && minute === minutesActuelles
+      );
 
-      // Vérifier si on doit enregistrer
-      const doitEnregistrer =
-        (minutesActuelles === 0 && dernierEnregistrement !== heureActuelle) || // Chaque heure pile
-        (heuresImportantes.includes(heureActuelle) && dernierEnregistrement !== heureActuelle); // Heures importantes
-
-      if (!doitEnregistrer) {
-        console.log(`Aucune donnée enregistrée à ${heure} (${date}).`);
+      if (!estHeureImportante) {
+        console.log(`Aucune donnée enregistrée à ${heure}.`);
         return;
       }
 
-      // Mettre à jour la dernière heure d'enregistrement
-      dernierEnregistrement = heureActuelle;
+      // Mise à jour de la dernière heure enregistrée
+      dernierEnregistrement[`${heureActuelle}:${minutesActuelles}`] = parsedData;
 
-      // Ajouter des valeurs par défaut pour les champs manquants
-      const ventiloActive = parsedData.ventiloActive !== undefined ? parsedData.ventiloActive : false;
-      const buzzer = parsedData.buzzer !== undefined ? parsedData.buzzer : false;
-      const signal = parsedData.signal !== undefined ? parsedData.signal : false;
+      // Vérification si toutes les heures importantes ont été enregistrées
+      const heuresEnregistrees = Object.keys(dernierEnregistrement);
+      if (heuresEnregistrees.length === heuresImportantes.length) {
+        // Calcul des moyennes de température et d'humidité
+        const temperatures = heuresEnregistrees.map((key) => dernierEnregistrement[key].temperature);
+        const humidites = heuresEnregistrees.map((key) => dernierEnregistrement[key].humidite);
 
-      // Créer un objet à enregistrer
-      const donnees = new Donnees({
-        date,
-        heure,
-        temperature: parsedData.temperature,
-        humidite: parsedData.humidite,
-        ventiloActive,
-        buzzer,
-        signal,
-      });
+        const moyTemp = temperatures.reduce((sum, temp) => sum + temp, 0) / temperatures.length;
+        const moyHum = humidites.reduce((sum, hum) => sum + hum, 0) / humidites.length;
 
-      // Enregistrer dans MongoDB
-      await donnees.save();
-      console.log('Données enregistrées dans MongoDB:', donnees);
+        // Création de l'objet à enregistrer dans la base de données avec la moyenne
+        const donnees = new Donnees({
+          date,
+          heure: heuresEnregistrees.join(', '), // Affiche les heures d'enregistrement
+          temperature: temperatures[temperatures.length - 1], // On prend la dernière température
+          humidite: humidites[humidites.length - 1], // On prend la dernière humidité
+          moyTemp,
+          moyHum,
+        });
 
-      // Émettre les données via WebSocket
-      io.emit('nouvelleDonnee', donnees);
-    } catch (err) {
-      console.error('Erreur lors du traitement des données:', err);
+        // Enregistrement dans MongoDB
+        try {
+          await donnees.save();
+          console.log('Données enregistrées dans MongoDB:', donnees);
+
+          // Réinitialisation après enregistrement des 3 heures
+          dernierEnregistrement = {};
+
+          // Émission des données via WebSocket
+          io.emit('nouvelleDonnee', {
+            date,
+            heure: donnees.heure,
+            temperature: donnees.temperature,
+            humidite: donnees.humidite,
+            moyTemp,
+            moyHum,
+          });
+        } catch (dbError) {
+          console.error('Erreur lors de l\'enregistrement dans MongoDB:', dbError);
+          io.emit('erreurEnregistrement', { message: 'Erreur lors de l\'enregistrement des données', details: dbError });
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors du traitement des données:', error);
     }
-  });
-
-  port.on('error', (err) => {
-    console.error('Erreur sur le port série:', err);
   });
 };
 
+export const getMoyenneJournaliere = async (req, res) => {
+  const { date } = req.params; // Récupère la date depuis les paramètres de la requête.
+
+  try {
+    // Convertir la date en format ISO pour effectuer une recherche
+    const startOfDay = moment(date).startOf('day').toDate();
+    const endOfDay = moment(date).endOf('day').toDate();
+
+    // Trouver les enregistrements correspondant aux heures importantes pour cette date
+    const donnees = await Donnees.find({
+      date: { $gte: startOfDay, $lte: endOfDay },
+      heure: { $in: ['20:40', '20:42', '20:46'] } // Les heures importantes à prendre en compte
+    });
+
+    // Logique pour s'assurer que nous avons les données nécessaires
+    const donneesDistinctes = [];
+    const heuresImportantes = ['20:40', '20:42', '20:46'];
+
+    heuresImportantes.forEach(heure => {
+      const donneePourHeure = donnees.filter(d => d.heure === heure)[0]; // Récupère la première donnée pour chaque heure
+      if (donneePourHeure) {
+        donneesDistinctes.push(donneePourHeure);
+      }
+    });
+
+    // Si nous avons bien les 3 enregistrements nécessaires
+    if (donneesDistinctes.length === 3) {
+      const moyTemp = donneesDistinctes.reduce((sum, item) => sum + item.temperature, 0) / donneesDistinctes.length;
+      const moyHum = donneesDistinctes.reduce((sum, item) => sum + item.humidite, 0) / donneesDistinctes.length;
+
+      // Retourne la moyenne calculée
+      return res.json({
+        date,
+        moyTemp,
+        moyHum,
+      });
+    } else {
+      return res.status(404).send('Pas toutes les données des heures importantes disponibles pour cette journée');
+    }
+  } catch (error) {
+    console.error('Erreur lors de la récupération de la moyenne journalière:', error);
+    return res.status(500).send('Erreur lors de la récupération des moyennes journalières');
+  }
+};
+
+// Récupérer la moyenne des trois heures importantes pour chaque jour de la semaine
+export const getMoyenneHebdomadaire = async () => {
+  try {
+    const startDate = moment('2024-11-11'); // Date de début (11 novembre 2024)
+    const endDate = moment('2024-11-30'); // Date de fin (30 novembre 2024)
+
+    // Heures spécifiques que nous recherchons pour chaque jour
+    const heuresImportantes = ['20:40', '20:42', '20:46'];
+
+    // Variable pour stocker les moyennes de chaque semaine
+    let moyennesHebdo = [];
+
+    // On boucle sur chaque semaine entre le 11 novembre et le 30 novembre
+    let currentStartDate = startDate.clone();
+    while (currentStartDate.isBefore(endDate)) {
+      // Définir le début et la fin de la semaine actuelle
+      const startOfWeek = currentStartDate.startOf('week').toDate(); // Lundi de la semaine
+      const endOfWeek = currentStartDate.endOf('week').toDate(); // Dimanche de la semaine
+
+      // Récupérer toutes les données de la semaine
+      const donnees = await Donnees.find({
+        date: { $gte: startOfWeek, $lte: endOfWeek },
+      });
+
+      if (donnees.length === 0) {
+        // S'il n'y a pas de données pour cette semaine, on passe à la semaine suivante
+        currentStartDate.add(1, 'week'); // Passer à la semaine suivante
+        continue;
+      }
+
+      // Regrouper les données par jour
+      const donneesParJour = {};
+      donnees.forEach(item => {
+        const jour = moment(item.date).format('YYYY-MM-DD'); // Format de la date pour regroupement
+        if (!donneesParJour[jour]) {
+          donneesParJour[jour] = [];
+        }
+        donneesParJour[jour].push(item);
+      });
+
+      // Vérifier que toutes les heures importantes sont présentes pour chaque jour
+      const joursComplet = Object.keys(donneesParJour).every(jour => {
+        const heuresPresentes = donneesParJour[jour].map(item => item.heure);
+        return heuresImportantes.every(heure => heuresPresentes.includes(heure));
+      });
+
+      if (!joursComplet) {
+        // Si toutes les données journalières ne sont pas présentes, on passe à la semaine suivante
+        currentStartDate.add(1, 'week');
+        continue;
+      }
+
+      // Calcul des moyennes pour cette semaine
+      let totalTemp = 0;
+      let totalHum = 0;
+      let count = 0;
+
+      Object.values(donneesParJour).forEach(donneesJour => {
+        // Calculer la moyenne journalière pour chaque jour
+        const moyTemp = donneesJour.reduce((sum, item) => sum + item.temperature, 0) / donneesJour.length;
+        const moyHum = donneesJour.reduce((sum, item) => sum + item.humidite, 0) / donneesJour.length;
+
+        totalTemp += moyTemp;
+        totalHum += moyHum;
+        count++;
+      });
+
+      // Calcul de la moyenne hebdomadaire
+      const moyTempHebdo = totalTemp / count;
+      const moyHumHebdo = totalHum / count;
+
+      moyennesHebdo.push({
+        semaine: `Semaine du ${moment(startOfWeek).format('DD/MM/YYYY')} au ${moment(endOfWeek).format('DD/MM/YYYY')}`,
+        moyTempHebdo,
+        moyHumHebdo,
+      });
+
+      // Passer à la semaine suivante
+      currentStartDate.add(1, 'week');
+    }
+
+    // Retourner les moyennes de chaque semaine
+    return moyennesHebdo;
+
+  } catch (error) {
+    console.error('Erreur lors de la récupération de la moyenne hebdomadaire:', error);
+    throw error;
+  }
+};
 
 // Récupérer toutes les données
 export const getAllDonnees = async (req, res) => {
@@ -109,7 +274,6 @@ export const getAllDonnees = async (req, res) => {
     res.status(500).json({ message: 'Erreur lors de la récupération des données', error: err.message });
   }
 };
-
 // Récupérer les données par ID
 export const getDonneesById = async (req, res) => {
   const id = req.params.id;
@@ -124,6 +288,32 @@ export const getDonneesById = async (req, res) => {
     res.status(500).json({ message: 'Erreur lors de la récupération des données', error: err.message });
   }
 };
+export const getWeeklyData = async (req, res) => {
+  try {
+    const { weekType } = req.params;
+
+    // Filtrer les week-ends
+    const filter = weekType === 'weekend' ? { dayOfWeek: { $in: [6, 0] } } : {}; // 6 = Samedi, 0 = Dimanche
+
+    const data = await Donnees.aggregate([
+      {
+        $addFields: {
+          dayOfWeek: { $dayOfWeek: { $dateFromString: { dateString: "$date" } } },
+        },
+      },
+      { $match: filter },
+    ]);
+
+    res.json({ data });
+  } catch (error) {
+    console.error('Erreur lors de la récupération des données hebdomadaires:', error);
+    res.status(500).json({ message: 'Erreur serveur', details: error });
+  }
+};
+
+
+
+
 
 
 // Calculer la moyenne journalière
@@ -305,4 +495,6 @@ export default {
   getWeeklyAverage,
   getDataForWeek,
   captureData,
+  getMoyenneHebdomadaire,
+  getMoyenneJournaliere
 };

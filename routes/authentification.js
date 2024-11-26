@@ -1,5 +1,5 @@
 import express from 'express';
-import { registerUser, loginUser, logoutUser, checkEmailExistence } from '../controllers/authController.js';
+import { registerUser, loginWithEmail,loginWithSecretCode, logoutUser, checkEmailExistence } from '../controllers/authController.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import { roleMiddleware } from '../middleware/roleMiddleware.js';
 
@@ -94,8 +94,9 @@ const router = express.Router();
  *       500:
  *         description: Une erreur serveur s'est produite.
  */
-router.post('/login', loginUser);
+router.post('/login-email', loginWithEmail);
 
+router.post('/login-secret', loginWithSecretCode);
 // Route pour vérifier l'existence de l'email
 router.post('/check-email', checkEmailExistence);
 

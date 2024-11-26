@@ -111,7 +111,7 @@ const router = express.Router();
  *       500:
  *         description: Une erreur est survenue. Veuillez réessayer plus tard.
  */
-router.post('/register',  registerUser);
+router.post('/register', authMiddleware, roleMiddleware('admin',), registerUser);
 
 /**
  * @swagger
@@ -178,7 +178,7 @@ router.post('/register',  registerUser);
  *       500:
  *         description: Erreur serveur.
  */
-router.get('/users',  getAllUsers);
+router.get('/users', authMiddleware, roleMiddleware('admin', 'user'), getAllUsers);
 
 /**
  * @swagger
@@ -378,7 +378,7 @@ router.get('/users/:id', authMiddleware, roleMiddleware('admin', 'user'), getUse
  *       500:
  *         description: Erreur serveur.
  */
-router.put('/users/:id',  updateUser);
+router.put('/users/:id', authMiddleware, roleMiddleware('admin'), updateUser);
 /**
  * @swagger
  * /users/{id}:
@@ -470,7 +470,7 @@ router.put('/users/:id',  updateUser);
  *       500:
  *         description: Erreur serveur.
  */
-router.patch('/users/:id', updateUser);
+router.patch('/users/:id', authMiddleware, roleMiddleware('admin'), updateUser);
 
 /**
  * @swagger
@@ -496,7 +496,7 @@ router.patch('/users/:id', updateUser);
  *       500:
  *         description: Erreur serveur.
  */
-router.delete('/users/:id', deleteUser);
+router.delete('/users/:id',authMiddleware, roleMiddleware('admin'), deleteUser);
 
 /**
  * @swagger
@@ -522,40 +522,7 @@ router.delete('/users/:id', deleteUser);
  *       404:
  *         description: "Utilisateur non trouvé."
  */
-router.patch('/users/:id/role', toggleUserRole);
+router.patch('/users/:id/role', authMiddleware, roleMiddleware('admin'), toggleUserRole);
 
 
-router.post('/login-secret', async (req, res) => {
-    const { codeSecret } = req.body;
-
-    try {
-        const user = await User.findOne({ secretCode: codeSecret });
-
-        if (!user) {
-            return res.status(400).json({ message: 'Code secret incorrect.' });
-        }
-
-        if (user.archivé) {
-            return res.status(403).json({ message: 'Votre compte est archivé. Vous ne pouvez pas vous connecter.' });
-        }
-
-        const token = jwt.sign({ userId: user._id, role: user.role }, SECRET_KEY, { expiresIn: '1h' });
-
-        res.status(200).json({
-            message: 'Connexion réussie.',
-            user: {
-                prenom: user.prenom,
-                nom: user.nom,
-                email: user.email,
-                role: user.role,
-                photo: user.photo,
-                telephone: user.telephone,
-            },
-            token: token,
-        });
-    } catch (error) {
-        console.error('Erreur serveur:', error);
-        res.status(500).json({ message: 'Erreur serveur.' });
-    }
-});
 export default router;

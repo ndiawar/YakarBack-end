@@ -23,7 +23,7 @@ const generateUsers = async (num) => {
   const users = [];
 
   for (let i = 0; i < num; i++) {
-    const password = 'password123';
+    const password = 'Passer@123!';
     const hashedPassword = await bcrypt.hash(password, 12);
 
     users.push({

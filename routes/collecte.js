@@ -6,6 +6,9 @@ import {
     getWeeklyAverage, 
     getMonthlyAverage,
     getCurrentMonthData,
+    getWeeklyData,
+    getMoyenneHebdomadaire, 
+    getMoyenneJournaliere, 
     getDataForWeek // Assurez-vous d'importer cette fonction
   } from '../controllers/dataController.js';  
 
@@ -25,6 +28,7 @@ const router = express.Router();
 import { captureData } from '../controllers/dataController.js';
 
 // *** Route pour la capture des données en temps réel via WebSocket ***
+router.get('/donnees/week/:weekType', getWeeklyData);
 
 /**
  * @swagger
@@ -47,13 +51,28 @@ import { captureData } from '../controllers/dataController.js';
  *       500:
  *         description: Erreur lors du démarrage de la capture des données.
  */
+// Route pour démarrer la capture des données
 router.post('/donnees/capture', (req, res) => {
   try {
-    // Ici, vous passez l'objet `io` pour émettre les données via WebSocket
-    captureData(req.app.get('io')); // Supposons que `io` est configuré dans app.js
+    // Passer l'objet `io` à la fonction de capture de données
+    captureData(req.app.get('io')); // Ici, vous passez `io` pour gérer les WebSockets
     res.status(200).json({ message: 'Capture des données démarrée avec succès.' });
   } catch (err) {
     res.status(500).json({ message: 'Erreur lors du démarrage de la capture des données', error: err.message });
+  }
+});
+
+// Route pour récupérer la moyenne journalière
+router.get('/moyenne-journaliere/:date', getMoyenneJournaliere);
+
+// Route pour récupérer la moyenne hebdomadaire
+router.get('/moyenne-hebdomadaire/:startOfWeekDate', async (req, res) => {
+  try {
+    const { startOfWeekDate } = req.params; // Ex : '2024-11-24'
+    const moyenneHebdomadaire = await getMoyenneHebdomadaire(startOfWeekDate);
+    res.json(moyenneHebdomadaire);
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur lors de la récupération de la moyenne hebdomadaire', error: error.message });
   }
 });
 
