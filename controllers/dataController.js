@@ -52,7 +52,7 @@ export const captureData = (io) => {
       const heure = `${String(heureActuelle).padStart(2, '0')}:${String(minutesActuelles).padStart(2, '0')}`;
 
       // Liste des heures importantes
-      const heuresImportantes = [10, 14, 17];
+      const heuresImportantes = [11, 14, 17];
 
       // Vérifier si on doit enregistrer
       const doitEnregistrer =

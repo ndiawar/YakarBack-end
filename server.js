@@ -14,6 +14,7 @@ import collecteRoutes from './routes/collecte.js';
 import userRoutes from './routes/user.js';
 import historiqueRoutes from './routes/historique.js';
 import { captureData } from './controllers/dataController.js';
+import CapteurRoutes from './routes/capteur.js';
 
 // Charger les variables d'environnement
 dotenv.config();
@@ -48,6 +49,7 @@ app.use('/api/auth', authentificationRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/collecte', collecteRoutes);
 app.use('/api/historique', historiqueRoutes);
+app.use('/api/capteurs', CapteurRoutes); 
 
 // Middleware pour gestion des erreurs
 app.use((err, req, res, next) => {

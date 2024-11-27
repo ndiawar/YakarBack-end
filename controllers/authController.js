@@ -245,7 +245,7 @@ export const loginWithEmail = async (req, res) => {
         telephone: user.telephone,
         adresse: user.adresse,
         photo: user.photo || null,
-        role: user.roles,
+        role: user.roles[0],
         status: user.status,
         createdAt: user.createdAt,
         date_modification: user.date_modification
@@ -286,7 +286,7 @@ export const loginWithSecretCode = async (req, res) => {
         telephone: user.telephone,
         adresse: user.adresse,
         photo: user.photo || null,
-        role: user.roles,
+        role: user.roles[0],
         status: user.status,
         createdAt: user.createdAt,
         date_modification: user.date_modification
