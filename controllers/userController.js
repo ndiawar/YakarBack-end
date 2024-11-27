@@ -5,11 +5,13 @@ import { logAction } from './historiqueController.js'; // Importer la fonction l
 
 
 // Récupérer les utilisateurs (actifs ou tous selon le paramètre)
+// Récupérer les utilisateurs (actifs ou tous selon le paramètre)
 export const getAllUsers = async (req, res) => {
   const { active } = req.query; // Récupérer le paramètre "active" depuis la requête
   const filter = active === 'true' ? { status: true } : {}; // Filtre pour les utilisateurs actifs
+  
   try {
-    const users = await User.find(filter); // Appliquer le filtre
+    const users = await User.find(filter).sort({ createdAt: -1 }); // Tri par date de création, du plus récent au plus ancien
     res.status(200).json({ users });
   } catch (err) {
     res.status(500).json({ message: 'Erreur lors de la récupération des utilisateurs', error: err.message });

@@ -30,10 +30,18 @@ export const registerUser = async (req, res) => {
   }
 
   // Vérification de la longueur du mot de passe
-  if (password.length < 8) {
-    return res.status(400).json({ message: 'Le mot de passe doit contenir au moins 8 caractères.' });
+ /*  if (password.length < 8) {
+    //return res.status(400).json({ message: 'Le mot de passe doit contenir au moins 8 caractères.' });
   }
-
+ */
+  // Vérification de la longueur et de la complexité du mot de passe
+  // Le mot de passe doit avoir au moins une majuscule, un caractère spécial, et 8 caractères minimum
+  const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
+  if (!passwordRegex.test(password)) {
+    return res.status(400).json({
+      message: 'Le mot de passe doit contenir au moins 8 caractères, une majuscule et un caractère spécial.',
+    });
+  }
   try {
     // Vérifier si l'utilisateur existe déjà avec l'email ou le téléphone
     const userExists = await User.findOne({ $or: [{ email }, { telephone }] });
