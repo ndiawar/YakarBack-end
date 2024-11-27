@@ -111,7 +111,7 @@ const router = express.Router();
  *       500:
  *         description: Une erreur est survenue. Veuillez réessayer plus tard.
  */
-router.post('/register', registerUser);
+router.post('/register', authMiddleware, roleMiddleware('admin',), registerUser);
 
 /**
  * @swagger
@@ -251,7 +251,7 @@ router.get('/users', getAllUsers);
  *       500:
  *         description: Erreur serveur.
  */
-router.get('/users/:id', getUserById);
+router.get('/users/:id', authMiddleware, roleMiddleware('admin', 'user'), getUserById);
 
 /**
  * @swagger
@@ -378,7 +378,7 @@ router.get('/users/:id', getUserById);
  *       500:
  *         description: Erreur serveur.
  */
-router.put('/users/:id', updateUser);
+router.put('/users/:id', authMiddleware, roleMiddleware('admin'), updateUser);
 /**
  * @swagger
  * /users/{id}:
@@ -470,7 +470,7 @@ router.put('/users/:id', updateUser);
  *       500:
  *         description: Erreur serveur.
  */
-router.patch('/users/:id', updateUser);
+router.patch('/users/:id', authMiddleware, roleMiddleware('admin'), updateUser);
 
 /**
  * @swagger
@@ -496,7 +496,7 @@ router.patch('/users/:id', updateUser);
  *       500:
  *         description: Erreur serveur.
  */
-router.delete('/users/:id', deleteUser);
+router.delete('/users/:id',authMiddleware, roleMiddleware('admin'), deleteUser);
 
 /**
  * @swagger
@@ -522,7 +522,7 @@ router.delete('/users/:id', deleteUser);
  *       404:
  *         description: "Utilisateur non trouvé."
  */
-router.patch('/users/:id/role', toggleUserRole);
+router.patch('/users/:id/role', authMiddleware, roleMiddleware('admin'), toggleUserRole);
 
 
 export default router;

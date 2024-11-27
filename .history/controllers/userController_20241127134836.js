@@ -98,17 +98,17 @@ export const updateUser = async (req, res) => {
     // Sauvegarder les changements
     await user.save();
 
-    // // Récupérer l'utilisateur connecté via le token
-    // const token = req.cookies.AUTH_COOKIE || req.headers.authorization?.split(' ')[1];
-    // if (!token) {
-    //   return res.status(403).json({ message: 'Token non trouvé, utilisateur non authentifié.' });
-    // }
+    // Récupérer l'utilisateur connecté via le token
+    const token = req.cookies.AUTH_COOKIE || req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(403).json({ message: 'Token non trouvé, utilisateur non authentifié.' });
+    }
 
-    // const decoded = jwt.verify(token, process.env.APP_SECRET);
-    // const loggedInUserId = decoded.id;
+    const decoded = jwt.verify(token, process.env.APP_SECRET);
+    const loggedInUserId = decoded.id;
 
-    // // Enregistrer l'action dans l'historique
-    // await logAction(loggedInUserId, `Mise à jour de l'utilisateur (ID: ${user._id})`);
+    // Enregistrer l'action dans l'historique
+    await logAction(loggedInUserId, `Mise à jour de l'utilisateur (ID: ${user._id})`);
 
     // Réponse au client
     res.status(200).json({ message: 'Utilisateur mis à jour avec succès', user });
@@ -133,18 +133,18 @@ export const deleteUser = async (req, res) => {
     user.date_modification = new Date(); // Mettre à jour la date de modification
     await user.save();
 
-    // //Récupérer l'utilisateur connecté via le token
-    // const token = req.cookies.AUTH_COOKIE || req.headers.authorization?.split(' ')[1];
-    // if (!token) {
-    //   return res.status(403).json({ message: 'Token non trouvé, utilisateur non authentifié.' });
-    // }
+    //Récupérer l'utilisateur connecté via le token
+    const token = req.cookies.AUTH_COOKIE || req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(403).json({ message: 'Token non trouvé, utilisateur non authentifié.' });
+    }
 
-    // //Décoder le token pour obtenir l'ID de l'utilisateur connecté
-    // const decoded = jwt.verify(token, process.env.APP_SECRET);
-    // const loggedInUserId = decoded.id;
+    //Décoder le token pour obtenir l'ID de l'utilisateur connecté
+    const decoded = jwt.verify(token, process.env.APP_SECRET);
+    const loggedInUserId = decoded.id;
 
-    // //Enregistrer l'action dans l'historique
-    // await logAction(loggedInUserId, `Désactivation de l'utilisateur (ID: ${user._id})`);
+    //Enregistrer l'action dans l'historique
+    await logAction(loggedInUserId, `Désactivation de l'utilisateur (ID: ${user._id})`);
 
     res.status(200).json({ message: 'Utilisateur désactivé avec succès', user });
   } catch (err) {
@@ -172,17 +172,17 @@ export const toggleUserRole = async (req, res) => {
     await user.save();
 
     // Récupérer l'utilisateur connecté via le token
-    // const token = req.cookies.AUTH_COOKIE || req.headers.authorization?.split(' ')[1];
-    // if (!token) {
-    //   return res.status(403).json({ message: 'Token non trouvé, utilisateur non authentifié.' });
-    // }
+    const token = req.cookies.AUTH_COOKIE || req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(403).json({ message: 'Token non trouvé, utilisateur non authentifié.' });
+    }
 
-    // //Décoder le token pour obtenir l'ID de l'utilisateur connecté
-    // const decoded = jwt.verify(token, process.env.APP_SECRET);
-    // const loggedInUserId = decoded.id;
+    //Décoder le token pour obtenir l'ID de l'utilisateur connecté
+    const decoded = jwt.verify(token, process.env.APP_SECRET);
+    const loggedInUserId = decoded.id;
 
-    // //Enregistrer l'action dans l'historique
-    // await logAction(loggedInUserId, `Changement de rôle de l'utilisateur (ID: ${user._id}) : ${newRole}`);
+    //Enregistrer l'action dans l'historique
+    await logAction(loggedInUserId, `Changement de rôle de l'utilisateur (ID: ${user._id}) : ${newRole}`);
 
     // Réponse au client
     res.status(200).json({

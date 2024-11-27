@@ -38,26 +38,11 @@ const io = new SocketIO(server, {
 connectDB();
 
 // Middleware
-// app.use(cors({
-//   origin: 'http://localhost:3000,http://localhost:4200/',  // Permet uniquement l'accès depuis http://localhost:4200
-//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-//   credentials: true,  // Ne pas envoyer de cookies ou d'informations d'authentification
-// }));
 app.use(cors({
-  origin: (origin, callback) => {
-    const allowedOrigins = ['http://localhost:3000', 'http://localhost:4200'];
-    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
-      callback(null, true); // L'origine est autorisée
-    } else {
-      callback(new Error('Origine non autorisée')); // L'origine n'est pas autorisée
-    }
-  },
+  origin: 'http://localhost:3000,http://localhost:4200/',  // Permet uniquement l'accès depuis http://localhost:4200
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  credentials: true,  // Permet d'inclure les cookies dans la requête
+  credentials: true,  // Ne pas envoyer de cookies ou d'informations d'authentification
 }));
-app.use(express.json()); // Permet de gérer les requêtes JSON
-app.use(bodyParser.urlencoded({ extended: true })); // Permet de gérer les requêtes avec des paramètres de formulaire
-
 app.use(bodyParser.json());  // Pour parser le corps des requêtes JSON
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());     // Pour parser les cookies

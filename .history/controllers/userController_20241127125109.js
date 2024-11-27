@@ -6,8 +6,8 @@ import { logAction } from './historiqueController.js'; // Importer la fonction l
 
 // Récupérer les utilisateurs (actifs ou tous selon le paramètre)
 export const getAllUsers = async (req, res) => {
-  const { status } = req.query; // Récupérer le paramètre "active" depuis la requête
-  const filter = status === 'true' ? { status: true } : {}; // Filtre pour les utilisateurs actifs
+  const { active } = req.query; // Récupérer le paramètre "active" depuis la requête
+  const filter = active === 'true' ? { status: true } : {}; // Filtre pour les utilisateurs actifs
   try {
     const users = await User.find(filter); // Appliquer le filtre
     res.status(200).json({ users });
@@ -37,13 +37,13 @@ export const updateUser = async (req, res) => {
   const { name, email, password, telephone, adresse, photo, status, roles, secretCode } = req.body;
 
   try {
-    // Vérifier si l'utilisateur existe
+    // Rechercher l'utilisateur par ID
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ message: 'Utilisateur introuvable.' });
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
     }
 
-    // Vérifier l'unicité de l'email
+    // Vérification de l'unicité de l'email si modifié
     if (email && email !== user.email) {
       const emailExists = await User.findOne({ email });
       if (emailExists) {
@@ -52,7 +52,7 @@ export const updateUser = async (req, res) => {
       user.email = email;
     }
 
-    // Vérifier l'unicité du téléphone
+    // Vérification de l'unicité du téléphone si modifié
     if (telephone && telephone !== user.telephone) {
       const phoneExists = await User.findOne({ telephone });
       if (phoneExists) {
@@ -61,7 +61,7 @@ export const updateUser = async (req, res) => {
       user.telephone = telephone;
     }
 
-    // Vérifier l'unicité du code secret
+    // Vérification de l'unicité du code secret si modifié
     if (secretCode && secretCode !== user.authentication.secretCode) {
       const codeExists = await User.findOne({ 'authentication.secretCode': secretCode });
       if (codeExists) {
@@ -70,51 +70,44 @@ export const updateUser = async (req, res) => {
       user.authentication.secretCode = secretCode;
     }
 
-    // Vérifier la validité du mot de passe si fourni
-    if (password) {
-      if (password.length < 8) {
-        return res.status(400).json({ message: 'Le mot de passe doit contenir au moins 8 caractères.' });
-      }
-      if (!/[A-Z]/.test(password)) {
-        return res.status(400).json({ message: 'Le mot de passe doit contenir au moins une majuscule.' });
-      }
-      if (!/[0-9]/.test(password)) {
-        return res.status(400).json({ message: 'Le mot de passe doit contenir au moins un chiffre.' });
-      }
-      if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
-        return res.status(400).json({ message: 'Le mot de passe doit contenir au moins un caractère spécial.' });
-      }
-      user.authentication.password = await bcrypt.hash(password, 12);
-    }
-
     // Mise à jour des autres champs si fournis
     user.name = name || user.name;
     user.adresse = adresse || user.adresse;
     user.photo = photo || user.photo;
     user.status = status !== undefined ? status : user.status; // Gestion booléenne
     user.roles = roles || user.roles;
+
+    // Mise à jour du mot de passe si fourni
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 12); // Hachage du mot de passe
+      user.authentication.password = hashedPassword;
+    }
+
+    // Mise à jour de la date de modification
     user.date_modification = new Date();
 
     // Sauvegarder les changements
     await user.save();
 
-    // // Récupérer l'utilisateur connecté via le token
-    // const token = req.cookies.AUTH_COOKIE || req.headers.authorization?.split(' ')[1];
-    // if (!token) {
-    //   return res.status(403).json({ message: 'Token non trouvé, utilisateur non authentifié.' });
-    // }
+    // Récupérer l'utilisateur connecté via le token
+    const token = req.cookies.AUTH_COOKIE || req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(403).json({ message: 'Token non trouvé, utilisateur non authentifié.' });
+    }
 
-    // const decoded = jwt.verify(token, process.env.APP_SECRET);
-    // const loggedInUserId = decoded.id;
+    // Décoder le token pour obtenir l'ID de l'utilisateur connecté
+    const decoded = jwt.verify(token, process.env.APP_SECRET);
+    const loggedInUserId = decoded.id;
 
-    // // Enregistrer l'action dans l'historique
-    // await logAction(loggedInUserId, `Mise à jour de l'utilisateur (ID: ${user._id})`);
+    // Enregistrer l'action dans l'historique
+    await logAction(loggedInUserId, `Mise à jour de l'utilisateur (ID: ${user._id})`);
 
     // Réponse au client
     res.status(200).json({ message: 'Utilisateur mis à jour avec succès', user });
   } catch (err) {
+    // Gestion des erreurs
     console.error('Erreur lors de la mise à jour de l\'utilisateur:', err);
-    res.status(500).json({ message: 'Erreur lors de la mise à jour de l\'utilisateur.', error: err.message });
+    res.status(500).json({ message: 'Erreur lors de la mise à jour de l\'utilisateur', error: err.message });
   }
 };
 
@@ -133,18 +126,18 @@ export const deleteUser = async (req, res) => {
     user.date_modification = new Date(); // Mettre à jour la date de modification
     await user.save();
 
-    // //Récupérer l'utilisateur connecté via le token
-    // const token = req.cookies.AUTH_COOKIE || req.headers.authorization?.split(' ')[1];
-    // if (!token) {
-    //   return res.status(403).json({ message: 'Token non trouvé, utilisateur non authentifié.' });
-    // }
+    //Récupérer l'utilisateur connecté via le token
+    const token = req.cookies.AUTH_COOKIE || req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(403).json({ message: 'Token non trouvé, utilisateur non authentifié.' });
+    }
 
-    // //Décoder le token pour obtenir l'ID de l'utilisateur connecté
-    // const decoded = jwt.verify(token, process.env.APP_SECRET);
-    // const loggedInUserId = decoded.id;
+    //Décoder le token pour obtenir l'ID de l'utilisateur connecté
+    const decoded = jwt.verify(token, process.env.APP_SECRET);
+    const loggedInUserId = decoded.id;
 
-    // //Enregistrer l'action dans l'historique
-    // await logAction(loggedInUserId, `Désactivation de l'utilisateur (ID: ${user._id})`);
+    //Enregistrer l'action dans l'historique
+    await logAction(loggedInUserId, `Désactivation de l'utilisateur (ID: ${user._id})`);
 
     res.status(200).json({ message: 'Utilisateur désactivé avec succès', user });
   } catch (err) {
@@ -172,17 +165,17 @@ export const toggleUserRole = async (req, res) => {
     await user.save();
 
     // Récupérer l'utilisateur connecté via le token
-    // const token = req.cookies.AUTH_COOKIE || req.headers.authorization?.split(' ')[1];
-    // if (!token) {
-    //   return res.status(403).json({ message: 'Token non trouvé, utilisateur non authentifié.' });
-    // }
+    const token = req.cookies.AUTH_COOKIE || req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(403).json({ message: 'Token non trouvé, utilisateur non authentifié.' });
+    }
 
-    // //Décoder le token pour obtenir l'ID de l'utilisateur connecté
-    // const decoded = jwt.verify(token, process.env.APP_SECRET);
-    // const loggedInUserId = decoded.id;
+    //Décoder le token pour obtenir l'ID de l'utilisateur connecté
+    const decoded = jwt.verify(token, process.env.APP_SECRET);
+    const loggedInUserId = decoded.id;
 
-    // //Enregistrer l'action dans l'historique
-    // await logAction(loggedInUserId, `Changement de rôle de l'utilisateur (ID: ${user._id}) : ${newRole}`);
+    //Enregistrer l'action dans l'historique
+    await logAction(loggedInUserId, `Changement de rôle de l'utilisateur (ID: ${user._id}) : ${newRole}`);
 
     // Réponse au client
     res.status(200).json({
