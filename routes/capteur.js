@@ -321,108 +321,108 @@ router.get('/latest-data', async (req, res) => {
   });
 
 
-  // Configuration du port série pour la connexion avec l'Arduino
-  const arduinoPort = new SerialPort({
-    path: '/dev/ttyUSB0', // Chemin vers le port série
-    baudRate: 9600,       // Taux de transmission
-  }); // Remplacez `/dev/ttyUSB0` par le port correct
-  const parser = arduinoPort.pipe(new ReadlineParser({ delimiter: '\n' })); // Analyse les lignes terminées par un saut de ligne
+  // // Configuration du port série pour la connexion avec l'Arduino
+  // const arduinoPort = new SerialPort({
+  //   path: '/dev/ttyUSB0', // Chemin vers le port série
+  //   baudRate: 9600,       // Taux de transmission
+  // }); // Remplacez `/dev/ttyUSB0` par le port correct
+  // const parser = arduinoPort.pipe(new ReadlineParser({ delimiter: '\n' })); // Analyse les lignes terminées par un saut de ligne
 
-  const normalizeTime = (rawTime) => {
-    // Récupère l'heure formatée HH:mm (pas besoin de secondes)
-    const [hours, minutes] = rawTime.split(':').map(val => parseInt(val, 10));
-    const normalizedHours = hours.toString().padStart(2, '0');
-    const normalizedMinutes = minutes.toString().padStart(2, '0');
+  // const normalizeTime = (rawTime) => {
+  //   // Récupère l'heure formatée HH:mm (pas besoin de secondes)
+  //   const [hours, minutes] = rawTime.split(':').map(val => parseInt(val, 10));
+  //   const normalizedHours = hours.toString().padStart(2, '0');
+  //   const normalizedMinutes = minutes.toString().padStart(2, '0');
     
-    return `${normalizedHours}:${normalizedMinutes}:00`; // On renvoie l'heure avec secondes toujours 00
-  };
+  //   return `${normalizedHours}:${normalizedMinutes}:00`; // On renvoie l'heure avec secondes toujours 00
+  // };
 
-// Vérifie si l'heure actuelle correspond aux heures définies
-const shouldSaveData = (heureActuelle) => {
-  const heuresCibles = ['00:00:00', '01:00:00', '02:00:00', '03:00:00', '04:00:00', '05:00:00', '06:00:00', '07:00:00', '08:00:00', '09:00:00', '10:00:00', '11:00:00', '12:00:00', '13:00:00', '14:00:00', '15:00:00', '16:00:00', '17:00:00', '18:00:00', '19:00:00', '20:00:00', '21:00:00', '22:00:00', '23:00:00']; // Heures avec secondes
-  return heuresCibles.includes(heureActuelle);
-};
+// // Vérifie si l'heure actuelle correspond aux heures définies
+// const shouldSaveData = (heureActuelle) => {
+//   const heuresCibles = ['00:00:00', '01:00:00', '02:00:00', '03:00:00', '04:00:00', '05:00:00', '06:00:00', '07:00:00', '08:00:00', '09:00:00', '10:00:00', '11:00:00', '12:00:00', '13:00:00', '14:00:00', '15:00:00', '16:00:00', '17:00:00', '18:00:00', '19:00:00', '20:00:00', '21:00:00', '22:00:00', '23:00:00']; // Heures avec secondes
+//   return heuresCibles.includes(heureActuelle);
+// };
 
-// Route POST pour recevoir les données
-router.post('/realTime', async (req, res) => {
-  try {
-    const { date, heure, temperature, humidite, ventiloActive, buzzer, signal } = req.body;
+// // Route POST pour recevoir les données
+// router.post('/realTime', async (req, res) => {
+//   try {
+//     const { date, heure, temperature, humidite, ventiloActive, buzzer, signal } = req.body;
 
-    // Vérifie si l'heure correspond
-    if (shouldSaveData(heure)) {
-      const newCapteurData = new CapteurData({
-        date,
-        heure,
-        temperature,
-        humidite,
-        ventiloActive,
-        buzzer,
-        signale: signal,
-      });
+//     // Vérifie si l'heure correspond
+//     if (shouldSaveData(heure)) {
+//       const newCapteurData = new CapteurData({
+//         date,
+//         heure,
+//         temperature,
+//         humidite,
+//         ventiloActive,
+//         buzzer,
+//         signale: signal,
+//       });
 
-      await newCapteurData.save();
-      return res.status(201).json({ message: 'Données enregistrées avec succès.' });
-    }
+//       await newCapteurData.save();
+//       return res.status(201).json({ message: 'Données enregistrées avec succès.' });
+//     }
 
-    res.status(200).json({ message: 'Données ignorées, heure non correspondante.' });
-  } catch (error) {
-    console.error('Erreur lors de l’enregistrement:', error);
-    res.status(500).json({ error: 'Erreur interne du serveur.' });
-  }
-});
+//     res.status(200).json({ message: 'Données ignorées, heure non correspondante.' });
+//   } catch (error) {
+//     console.error('Erreur lors de l’enregistrement:', error);
+//     res.status(500).json({ error: 'Erreur interne du serveur.' });
+//   }
+// });
 
-// Fonction pour envoyer l'heure actuelle au format "HH:mm:ss"
-const getCurrentTime = () => {
-  return moment().format('HH:mm:ss'); // Exemple : 11:58:00
-};
+// // Fonction pour envoyer l'heure actuelle au format "HH:mm:ss"
+// const getCurrentTime = () => {
+//   return moment().format('HH:mm:ss'); // Exemple : 11:58:00
+// };
 
 
 
-// Lors de chaque réception de données de l'Arduino
-parser.on('data', async (line) => {
-  try {
-    console.log(`Données reçues de l'Arduino : ${line}`);
-    const data = JSON.parse(line.trim()); // Convertir la ligne JSON en objet
+// // Lors de chaque réception de données de l'Arduino
+// parser.on('data', async (line) => {
+//   try {
+//     console.log(`Données reçues de l'Arduino : ${line}`);
+//     const data = JSON.parse(line.trim()); // Convertir la ligne JSON en objet
 
-    // Synchronisation de l'heure avec celle du serveur
-    const currentTime = getCurrentTime(); // Récupérer l'heure actuelle du serveur
-    console.log(`Heure actuelle du serveur : ${currentTime}`);
+//     // Synchronisation de l'heure avec celle du serveur
+//     const currentTime = getCurrentTime(); // Récupérer l'heure actuelle du serveur
+//     console.log(`Heure actuelle du serveur : ${currentTime}`);
 
-    const dateActuelle = moment().format('YYYY-MM-DD'); // Date actuelle au format YYYY-MM-DD
+//     const dateActuelle = moment().format('YYYY-MM-DD'); // Date actuelle au format YYYY-MM-DD
 
-    const { temperature, humidite, ventiloActive, buzzer, signal } = data;
+//     const { temperature, humidite, ventiloActive, buzzer, signal } = data;
 
-    // Formater l'heure pour qu'elle corresponde à "HH:mm:ss"
-    const heureReformatee = currentTime; // Utiliser l'heure du serveur
+//     // Formater l'heure pour qu'elle corresponde à "HH:mm:ss"
+//     const heureReformatee = currentTime; // Utiliser l'heure du serveur
 
-    console.log(`Heure normalisée : ${heureReformatee}`);
+//     console.log(`Heure normalisée : ${heureReformatee}`);
 
-    if (shouldSaveData(heureReformatee)) {
-      const newCapteurData = new CapteurData({
-        date: dateActuelle,
-        heure: heureReformatee,
-        temperature,
-        humidite,
-        ventiloActive,
-        buzzer,
-        signale: signal ? 'rouge' : 'vert', // Ajuster en fonction de votre logique
-      });
+//     if (shouldSaveData(heureReformatee)) {
+//       const newCapteurData = new CapteurData({
+//         date: dateActuelle,
+//         heure: heureReformatee,
+//         temperature,
+//         humidite,
+//         ventiloActive,
+//         buzzer,
+//         signale: signal ? 'rouge' : 'vert', // Ajuster en fonction de votre logique
+//       });
 
-      await newCapteurData.save();
-      console.log('Données enregistrées avec succès dans MongoDB.');
-    } else {
-      console.log('Données ignorées, heure non correspondante.');
-    }
-  } catch (error) {
-    console.error('Erreur lors du traitement des données Arduino :', error);
-  }
-});
+//       await newCapteurData.save();
+//       console.log('Données enregistrées avec succès dans MongoDB.');
+//     } else {
+//       console.log('Données ignorées, heure non correspondante.');
+//     }
+//   } catch (error) {
+//     console.error('Erreur lors du traitement des données Arduino :', error);
+//   }
+// });
 
-// Fonction pour envoyer l'heure au format "HH:mm:ss" à l'Arduino toutes les minutes
-setInterval(() => {
-  const currentTime = getCurrentTime(); // Heure actuelle du serveur
-  arduinoPort.write(currentTime + '\n'); // Envoi de l'heure au format "HH:mm:ss" à l'Arduino
-}, 60000); // Envoie l'heure toutes les 60 secondes
+// // Fonction pour envoyer l'heure au format "HH:mm:ss" à l'Arduino toutes les minutes
+// setInterval(() => {
+//   const currentTime = getCurrentTime(); // Heure actuelle du serveur
+//   arduinoPort.write(currentTime + '\n'); // Envoi de l'heure au format "HH:mm:ss" à l'Arduino
+// }, 60000); // Envoie l'heure toutes les 60 secondes
 
 // Route POST pour activer/désactiver le ventilateur
 // Route pour contrôler le ventilateur

@@ -3,7 +3,9 @@ import { logoutUser, checkEmailExistence, loginWithEmail, loginWithSecretCode } 
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import { roleMiddleware } from '../middleware/roleMiddleware.js';
 import User from '../models/user.js';
-
+import multer from 'multer';
+import bcrypt from 'bcryptjs';
+import path from 'path';
 const router = express.Router();
 
 // *** Routes Authentification ***
@@ -164,5 +166,77 @@ router.post('/check-email', checkEmailExistence);
  *         description: Une erreur serveur s'est produite.
  */
 router.post('/logout', authMiddleware, roleMiddleware('admin', 'user'), logoutUser);
+
+router.post('/change-password', async (req, res) => {
+    const { userId, currentPassword, newPassword } = req.body;
+  
+    if (!userId || !currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Tous les champs sont requis.' });
+    }
+  
+    try {
+      const user = await User.findById(userId).select('authentication.password');
+      
+  
+      const isMatch = await bcrypt.compare(currentPassword, user.authentication.password);
+      if (!isMatch) {
+        return res.status(400).json({ message: 'Mot de passe actuel incorrect' });
+      }
+  
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      user.authentication.password = hashedPassword;
+      await user.save();
+  
+      res.status(200).json({ message: 'Mot de passe mis à jour avec succès.' });
+    } catch (error) {
+      res.status(500).json({ message: 'Erreur interne du serveur.', error });
+    }
+  });
+
+  // Configuration de stockage pour multer
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, 'uploads/');
+    },
+    filename: function (req, file, cb) {
+      cb(null, `${Date.now()}-${file.originalname}`);
+    },
+  });
+  
+  const upload = multer({ storage });
+  
+  
+  // Route pour mettre à jour la photo de profil
+  router.post('/update-photo', upload.single('photo'), async (req, res) => {
+    const { userId } = req.body;
+  
+    console.log('Requête reçue avec :', { userId, file: req.file });
+  
+    // Vérifier si le fichier est bien reçu
+    if (!req.file) {
+      return res.status(400).json({ message: 'Aucun fichier envoyé.' });
+    }
+  
+    const filePath = req.file.path;
+  
+    try {
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'Utilisateur introuvable' });
+      }
+  
+      // Mettre à jour la photo
+      user.photo = filePath;
+      await user.save();
+  
+      console.log('Photo mise à jour avec succès pour l\'utilisateur', userId);
+  
+      res.status(200).json({ message: 'Photo mise à jour avec succès', photo: filePath });
+    } catch (error) {
+      console.error('Erreur serveur lors de la mise à jour de la photo :', error);
+      res.status(500).json({ message: 'Erreur interne du serveur', error: error.message });
+    }
+  });
+  
 
 export default router;

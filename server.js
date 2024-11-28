@@ -62,7 +62,7 @@ swaggerDocs(app);
 
 // Gestion du port série
 const serialPort = new SerialPort({
-  path: '/dev/ttyACM0',
+  path: '/dev/ttyUSB0',
   baudRate: 9600,
   autoOpen: true,
 });

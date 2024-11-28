@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import User from '../models/user.js';
+import multer from 'multer';
 import { logAction } from './historiqueController.js'; // Importer la fonction logAction
 
 
@@ -192,6 +193,8 @@ export const toggleUserRole = async (req, res) => {
     });
   }
 };
+
+
 
 
 

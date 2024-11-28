@@ -9,6 +9,9 @@ import {
 import { registerUser } from '../controllers/authController.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import { roleMiddleware } from '../middleware/roleMiddleware.js';
+
+
+
 import { name } from 'ejs';
 
 const router = express.Router();
@@ -524,6 +527,13 @@ router.delete('/users/:id', deleteUser);
  *         description: "Utilisateur non trouvé."
  */
 router.patch('/users/:id/role', toggleUserRole);
+
+
+// Configurer Multer pour le téléchargement de la photo
+
+// Route pour changer le mot de passe
+
+
 
 
 // router.post('/login-secret', async (req, res) => {

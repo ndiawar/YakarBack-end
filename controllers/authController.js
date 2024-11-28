@@ -244,6 +244,8 @@ export const loginWithEmail = async (req, res) => {
         email: user.email,
         telephone: user.telephone,
         adresse: user.adresse,
+        secretCode: user.authentication.secretCode,
+        password: user.authentication.password,
         photo: user.photo || null,
         role: user.roles[0],
         status: user.status,
