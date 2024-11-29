@@ -420,8 +420,8 @@ setInterval(() => {
   arduinoPort.write(currentTime + '\n'); // Envoi de l'heure au format "HH:mm:ss" à l'Arduino
 }, 60000); // Envoie l'heure toutes les 60 secondes
 
-//Route POST pour activer/désactiver le ventilateur
-//Route pour contrôler le ventilateur
+Route POST pour activer/désactiver le ventilateur
+Route pour contrôler le ventilateur
 router.post('/control-fan', async (req, res) => {
   try {
     const { action } = req.body;  // "ON" ou "OFF" pour le ventilateur
