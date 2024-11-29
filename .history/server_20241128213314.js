@@ -39,7 +39,7 @@ connectDB();
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:4200',  // Permet uniquement l'accès depuis http://localhost:4200
+  origin: '*',  // Permet uniquement l'accès depuis http://localhost:4200
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   credentials: false,  // Ne pas envoyer de cookies ou d'informations d'authentification
 }));

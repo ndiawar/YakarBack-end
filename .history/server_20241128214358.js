@@ -41,7 +41,7 @@ connectDB();
 app.use(cors({
   origin: 'http://localhost:4200',  // Permet uniquement l'accès depuis http://localhost:4200
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  credentials: false,  // Ne pas envoyer de cookies ou d'informations d'authentification
+  credentials: true,  // Ne pas envoyer de cookies ou d'informations d'authentification
 }));
 app.use(bodyParser.json());  // Pour parser le corps des requêtes JSON
 app.use(bodyParser.urlencoded({ extended: true }));

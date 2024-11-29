@@ -1,5 +1,5 @@
 import express from 'express';
-import { logoutUser, checkEmailExistence, loginWithEmail, loginWithSecretCode , changePassword} from '../controllers/authController.js';
+import { logoutUser, checkEmailExistence, loginWithEmail, loginWithSecretCode } from '../controllers/authController.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import { roleMiddleware } from '../middleware/roleMiddleware.js';
 import User from '../models/user.js';
@@ -98,7 +98,7 @@ const router = express.Router();
  *         description: Une erreur serveur s'est produite.
  */
 router.post('/login-email', loginWithEmail);
-router.post('/change-password', changePassword);
+
 router.post('/login-secret', loginWithSecretCode);
 
 // router.post('/login-secret', async (req, res) => {
@@ -204,6 +204,7 @@ const storage = multer.diskStorage({
   });
   
   const upload = multer({ storage });
+  
   
   // Route pour mettre à jour la photo de profil
   router.post('/update-photo', upload.single('photo'), async (req, res) => {

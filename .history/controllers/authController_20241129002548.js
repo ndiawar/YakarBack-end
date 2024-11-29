@@ -71,18 +71,18 @@ export const registerUser = async (req, res) => {
     // Enregistrement dans la base de données
     await newUser.save();
 
-    // // Récupérer l'utilisateur connecté (celui qui effectue l'inscription)
-    // const token = req.cookies.AUTH_COOKIE || req.headers.authorization?.split(' ')[1];
-    // if (!token) {
-    //   return res.status(403).json({ message: 'Token non trouvé, utilisateur non authentifié.' });
-    // }
+    // Récupérer l'utilisateur connecté (celui qui effectue l'inscription)
+    const token = req.cookies.AUTH_COOKIE || req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(403).json({ message: 'Token non trouvé, utilisateur non authentifié.' });
+    }
 
-    // // Décoder le token pour obtenir l'ID de l'utilisateur connecté
-    // const decoded = jwt.verify(token, process.env.APP_SECRET);
-    // const loggedInUserId = decoded.id;
+    // Décoder le token pour obtenir l'ID de l'utilisateur connecté
+    const decoded = jwt.verify(token, process.env.APP_SECRET);
+    const loggedInUserId = decoded.id;
 
-    // // Enregistrer l'action d'inscription dans l'historique
-    // await logAction(loggedInUserId, `Inscription d'un nouvel utilisateur (ID: ${newUser._id})`);
+    // Enregistrer l'action d'inscription dans l'historique
+    await logAction(loggedInUserId, `Inscription d'un nouvel utilisateur (ID: ${newUser._id})`);
 
     // Réponse au client
     res.status(201).json({

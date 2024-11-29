@@ -500,7 +500,7 @@ router.patch('/users/:id', updateUser);
  *       500:
  *         description: Erreur serveur.
  */
-router.delete('/users/:id',authMiddleware, roleMiddleware('admin'), deleteUser);
+router.delete('/users/:id', deleteUser);
 
 /**
  * @swagger
@@ -526,7 +526,7 @@ router.delete('/users/:id',authMiddleware, roleMiddleware('admin'), deleteUser);
  *       404:
  *         description: "Utilisateur non trouvé."
  */
-router.patch('/users/:id/role', authMiddleware, roleMiddleware('admin'), toggleUserRole);
+router.patch('/users/:id/role', toggleUserRole);
 
 
 // Configurer Multer pour le téléchargement de la photo

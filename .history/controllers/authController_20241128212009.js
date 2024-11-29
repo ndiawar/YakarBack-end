@@ -71,18 +71,18 @@ export const registerUser = async (req, res) => {
     // Enregistrement dans la base de données
     await newUser.save();
 
-    // // Récupérer l'utilisateur connecté (celui qui effectue l'inscription)
-    // const token = req.cookies.AUTH_COOKIE || req.headers.authorization?.split(' ')[1];
-    // if (!token) {
-    //   return res.status(403).json({ message: 'Token non trouvé, utilisateur non authentifié.' });
-    // }
+    // Récupérer l'utilisateur connecté (celui qui effectue l'inscription)
+    const token = req.cookies.AUTH_COOKIE || req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(403).json({ message: 'Token non trouvé, utilisateur non authentifié.' });
+    }
 
-    // // Décoder le token pour obtenir l'ID de l'utilisateur connecté
-    // const decoded = jwt.verify(token, process.env.APP_SECRET);
-    // const loggedInUserId = decoded.id;
+    // Décoder le token pour obtenir l'ID de l'utilisateur connecté
+    const decoded = jwt.verify(token, process.env.APP_SECRET);
+    const loggedInUserId = decoded.id;
 
-    // // Enregistrer l'action d'inscription dans l'historique
-    // await logAction(loggedInUserId, `Inscription d'un nouvel utilisateur (ID: ${newUser._id})`);
+    // Enregistrer l'action d'inscription dans l'historique
+    await logAction(loggedInUserId, `Inscription d'un nouvel utilisateur (ID: ${newUser._id})`);
 
     // Réponse au client
     res.status(201).json({
@@ -116,48 +116,7 @@ export const registerUser = async (req, res) => {
     }
   }
 };
-//changer mot de passe
-export const changePassword = async (req, res) => {
-  const { email, oldPassword, newPassword, confirmPassword } = req.body;
 
-  if (!oldPassword || !newPassword || !confirmPassword) {
-    return res.status(400).json({ message: 'Ancien mot de passe, nouveau mot de passe et confirmation sont requis.' });
-  }
-
-  if (newPassword !== confirmPassword) {
-    return res.status(400).json({ message: 'Les nouveaux mots de passe ne correspondent pas.' });
-  }
-
-  if (newPassword.length < 8) {
-    return res.status(400).json({ message: 'Le mot de passe doit contenir au moins 8 caractères.' });
-  }
-
-  try {
-    // Rechercher l'utilisateur par email
-    const user = await User.findOne({ email }).select('+authentication.password');
-    if (!user) {
-      return res.status(404).json({ message: 'Utilisateur non trouvé.' });
-    }
-
-    // Vérification de l'ancien mot de passe
-    const passwordMatch = await bcrypt.compare(oldPassword.trim(), user.authentication.password);
-    if (!passwordMatch) {
-      return res.status(401).json({ message: 'Ancien mot de passe incorrect.' });
-    }
-
-    // Hacher le nouveau mot de passe
-    const hashedNewPassword = await bcrypt.hash(newPassword, 12);
-
-    // Mettre à jour le mot de passe dans la base de données
-    user.authentication.password = hashedNewPassword;
-    await user.save();
-
-    return res.status(200).json({ message: 'Mot de passe mis à jour avec succès.' });
-  } catch (error) {
-    console.error('Erreur lors de la mise à jour du mot de passe:', error);
-    return res.status(500).json({ message: 'Erreur serveur.' });
-  }
-};
 // Vérifier le mot de passe
 export const verifyPassword = async (req, res) => {
   const { email, password } = req.body;
@@ -346,7 +305,6 @@ export const logoutUser = (req, res) => {
   res.clearCookie('AUTH_COOKIE');
   res.status(200).json({ message: 'Déconnexion réussie.' });
 };
-
 // Vérifier l'existence de l'email dans la base de données
 export const checkEmailExistence = async (req, res) => {
   try {

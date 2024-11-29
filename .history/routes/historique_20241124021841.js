@@ -150,7 +150,7 @@ router.post('/log', logAction);  // Utilisation de la méthode POST pour enregis
  *       500:
  *         description: Une erreur est survenue.
  */
-router.get('/historique/action', getHistoriqueByAction);
+router.get('/historique/action', authMiddleware, roleMiddleware('admin'), getHistoriqueByAction);
 
 /**
  * @swagger
@@ -195,6 +195,6 @@ router.get('/historique/action', getHistoriqueByAction);
  *       500:
  *         description: Une erreur est survenue.
  */
-router.get('/historique/user/:userId', getHistoriqueByUser);
+router.get('/historique/user/:userId', authMiddleware, roleMiddleware('admin'), getHistoriqueByUser);
 
 export default router;
