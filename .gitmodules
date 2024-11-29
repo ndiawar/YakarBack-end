@@ -1,0 +1,3 @@
+[submodule "yakarFront"]
+	path = yakarFront
+	url = https://github.com/ndiawar/yakarFront_End.git
