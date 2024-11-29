@@ -1,0 +1,44 @@
+# Ignorer les dossiers et fichiers Node.js
+node_modules/           # Toutes les dépendances installées avec npm/yarn
+npm-debug.log*          # Fichiers de log générés par npm en cas d'erreurs
+yarn-debug.log*         # Fichiers de log générés par yarn
+yarn-error.log*         # Logs d'erreur Yarn
+
+# Ignorer les fichiers de logs générés par l'application
+logs/                   # Répertoire pour vos fichiers de logs si vous en avez un
+*.log                   # Tous les fichiers logs à la racine
+
+# Ignorer les fichiers temporaires
+*.tmp
+*.temp
+
+# Ignorer les environnements et configurations sensibles
+.env                    # Variables d'environnement
+.env.*                  # Autres fichiers .env (ex. : .env.local, .env.production)
+
+# Ignorer les répertoires et fichiers générés automatiquement
+coverage/               # Couverture des tests (ex. : généré par Jest)
+.DS_Store               # Fichier système macOS
+Thumbs.db               # Fichier système Windows
+*.swp                   # Fichiers de swap (éditeurs de texte comme Vim)
+
+# Ignorer les fichiers de builds ou temporaires
+dist/                   # Répertoire de build final
+build/                  # Répertoire de build final
+out/                    # Répertoire généré par certaines configurations (ex. Next.js)
+.tmp/                   # Répertoires temporaires
+.cache/                 # Cache des outils comme Babel ou Parcel
+
+# Ignorer les fichiers spécifiques à des éditeurs
+.vscode/                # Paramètres spécifiques à Visual Studio Code
+.idea/                  # Paramètres spécifiques à IntelliJ
+*.sublime-project       # Projets Sublime Text
+*.sublime-workspace     # Espace de travail Sublime Text
+
+# Ignorer les paquets locaux si vous les utilisez
+*.tgz                   # Paquets Node.js compressés localement
+*.lock                  # Fichiers de verrouillage (ex. : package-lock.json, yarn.lock)
+
+# Ignorer les fichiers de tests
+*.test.js               # Fichiers de tests
+*.spec.js               # Spécifications de tests
